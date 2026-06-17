@@ -1,0 +1,17 @@
+{
+  "name": "Panadol Garage Business System",
+  "short_name": "Panadol Garage",
+  "description": "Business management system for Panadol Garage.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F1F5F9",
+  "theme_color": "#0F172A",
+  "icons": [
+    {
+      "src": "logo/Panadol_Garage_logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
