@@ -815,8 +815,6 @@
       pointer-events: none;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-all-time-income),
-    #page-dashboard .kpi-card:has(#kpi-inventory-value),
     #page-dashboard .kpi-card:has(#kpi-payroll-cost) {
       display: none;
     }
@@ -829,32 +827,44 @@
       order: 2;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-net-income) {
+    #page-dashboard .kpi-card:has(#kpi-all-time-income) {
       order: 3;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-parts-profit) {
+    #page-dashboard .kpi-card:has(#kpi-net-income) {
       order: 4;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-monthly-expenses) {
+    #page-dashboard .kpi-card:has(#kpi-parts-profit) {
       order: 5;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-net-profit) {
+    #page-dashboard .kpi-card:has(#kpi-monthly-expenses) {
       order: 6;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-outstanding-debts) {
+    #page-dashboard .kpi-card:has(#kpi-net-profit) {
       order: 7;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-active-repairs) {
+    #page-dashboard .kpi-card:has(#kpi-outstanding-debts) {
       order: 8;
     }
 
-    #page-dashboard .kpi-card:has(#kpi-low-stock-count) {
+    #page-dashboard .kpi-card:has(#kpi-active-repairs) {
       order: 9;
+    }
+
+    #page-dashboard .kpi-card:has(#kpi-low-stock-count) {
+      order: 10;
+    }
+
+    #page-dashboard .kpi-card:has(#kpi-inventory-value) {
+      order: 11;
+    }
+
+    #page-dashboard .kpi-card:has(#kpi-inventory-expected-profit) {
+      order: 12;
     }
 
     .kpi-card-left {
@@ -1200,6 +1210,7 @@
       position: relative;
       width: 300px;
       max-width: 100%;
+      z-index: 20;
     }
 
     .search-input {
@@ -1213,9 +1224,76 @@
     .search-icon {
       position: absolute;
       left: 12px;
-      top: 50%;
+      top: 17px;
       transform: translateY(-50%);
       opacity: 0.4;
+    }
+
+    .search-suggestions {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: none;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .search-suggestions.active {
+      display: block;
+    }
+
+    .search-suggestion-item {
+      width: 100%;
+      border: 0;
+      background: #FFF;
+      padding: 10px 12px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-suggestion-item:last-child {
+      border-bottom: 0;
+    }
+
+    .search-suggestion-item:hover,
+    .search-suggestion-item:focus {
+      background: var(--light);
+      outline: none;
+    }
+
+    .search-suggestion-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--dark);
+      line-height: 1.25;
+    }
+
+    .search-suggestion-meta {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .search-suggestion-amount {
+      flex: 0 0 auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--success);
     }
 
     /* BADGES */
@@ -2841,6 +2919,14 @@
               </div>
               <span class="kpi-icon">⚙️</span>
             </div>
+            <div class="kpi-card" style="border-left: 4px solid var(--success);">
+              <div class="kpi-card-left">
+                <span class="kpi-label">Expected Inventory Profit</span>
+                <span class="kpi-value" id="kpi-inventory-expected-profit">KES 0</span>
+                <span class="kpi-sub" id="sub-inventory-expected-profit">Loading...</span>
+              </div>
+              <span class="kpi-icon">KES</span>
+            </div>
             <!-- 6. Monthly Expenses -->
             <!-- 5b. Spare Parts Profit -->
             <div class="kpi-card" style="border-left: 4px solid var(--success);">
@@ -3166,7 +3252,7 @@
           </div>
 
           <!-- STATS ROW -->
-          <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);" aria-live="polite">
+          <div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr);" aria-live="polite">
             <div class="kpi-card" style="border-color: var(--red);">
               <div class="kpi-card-left">
                 <span class="kpi-label">Today Total Sales</span>
@@ -3197,6 +3283,12 @@
                 <span class="kpi-value" id="parts-stat-credit">KES 0</span>
               </div>
             </div>
+            <div class="kpi-card" style="border-color: var(--success);">
+              <div class="kpi-card-left">
+                <span class="kpi-label">Expected Inventory Profit</span>
+                <span class="kpi-value" id="parts-stat-expected-profit">KES 0</span>
+              </div>
+            </div>
           </div>
 
           <!-- GRID LOG -->
@@ -3212,7 +3304,8 @@
                 <div class="search-box">
                   <span class="search-icon">🔍</span>
                   <input type="text" class="search-input" id="spare-parts-search"
-                    placeholder="Search invoices or parts...">
+                    placeholder="Search parts, invoices, customer, amount...">
+                  <div class="search-suggestions" id="spare-parts-search-suggestions"></div>
                 </div>
                 <div style="display: flex; gap: 10px;">
                   <select class="form-control" id="spare-date-filter"
@@ -4125,7 +4218,13 @@
           </div>
 
           <!-- PILLS -->
-          <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);" aria-live="polite">
+          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);" aria-live="polite">
+            <div class="kpi-card" style="border-color: var(--info);">
+              <div class="kpi-card-left">
+                <span class="kpi-label">Inventory Value</span>
+                <span class="kpi-value" id="inv-stat-value">KES 0</span>
+              </div>
+            </div>
             <div class="kpi-card" style="border-color: var(--danger);">
               <div class="kpi-card-left">
                 <span class="kpi-label">Out of Stock</span>
@@ -5278,13 +5377,62 @@
       return DB.payroll.reduce((sum, emp) => sum + calculateEmployeePay(emp), 0);
     }
 
+    function parseStoredNumber(value) {
+      if (value === null || value === undefined || value === '') return NaN;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+      const cleaned = String(value).replace(/KES/gi, '').replace(/,/g, '').trim();
+      if (!cleaned) return NaN;
+      const num = Number(cleaned);
+      return Number.isFinite(num) ? num : NaN;
+    }
+
+    function getRecordValue(record, aliases) {
+      if (!record) return undefined;
+      for (const key of aliases) {
+        if (record[key] !== undefined && record[key] !== null && record[key] !== '') return record[key];
+      }
+
+      const normalizedAliases = aliases.map(key => String(key).toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const matchedKey = Object.keys(record).find(key => normalizedAliases.includes(String(key).toLowerCase().replace(/[^a-z0-9]/g, '')));
+      return matchedKey ? record[matchedKey] : undefined;
+    }
+
     function firstNumericValue(...values) {
       for (const value of values) {
-        if (value === null || value === undefined || value === '') continue;
-        const num = Number(value);
+        const num = parseStoredNumber(value);
         if (Number.isFinite(num)) return num;
       }
       return 0;
+    }
+
+    function getSparePartSaleName(sale) {
+      return getRecordValue(sale, ['part', 'item', 'description', 'desc', 'spare_part', 'spare part', 'part_name', 'part name']) || '';
+    }
+
+    function getSparePartSaleQty(sale) {
+      return firstNumericValue(getRecordValue(sale, ['qty', 'quantity', 'units']));
+    }
+
+    function parseMoneyFromSaleText(sale, labels = ['total', 'amount', 'sale', 'sold', 'price'], allowFallback = true) {
+      const text = [
+        getRecordValue(sale, ['description', 'desc', 'notes']),
+        getRecordValue(sale, ['item', 'part', 'part_name', 'part name'])
+      ]
+        .filter(Boolean)
+        .join(' ');
+      if (!text) return 0;
+
+      const labelPattern = labels.map(label => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      const labeledAmount = text.match(new RegExp(`(?:${labelPattern})\\s*(?:is|=|:|-)?\\s*(?:KES\\s*)?([\\d,]+(?:\\.\\d+)?)`, 'i'));
+      if (labeledAmount) return firstNumericValue(labeledAmount[1]);
+      if (!allowFallback) return 0;
+
+      const kesAmount = text.match(/KES\s*([\d,]+(?:\.\d+)?)/i);
+      if (kesAmount) return firstNumericValue(kesAmount[1]);
+
+      const numbers = text.match(/\d[\d,]*(?:\.\d+)?/g) || [];
+      const amounts = numbers.map(firstNumericValue).filter(num => Number.isFinite(num) && num > 0);
+      return amounts.length ? Math.max(...amounts) : 0;
     }
 
     function getInventoryBuyingPrice(item) {
@@ -5314,21 +5462,36 @@
     }
 
     function getSaleBuyingPrice(sale) {
-      const savedBuyingPrice = firstNumericValue(sale?.buying_price, sale?.buyingPrice);
+      const savedBuyingPrice = firstNumericValue(getRecordValue(sale, ['buying_price', 'buyingPrice', 'buying price', 'buying price kes', 'buying_price_kes', 'cost_price', 'cost price', 'cost price kes', 'cost']));
       if (savedBuyingPrice) return savedBuyingPrice;
-      const item = findInventoryItemByName(sale?.part);
+      const item = findInventoryItemByName(getSparePartSaleName(sale));
       return item ? getInventoryBuyingPrice(item) : 0;
     }
 
     function getSaleMarketPrice(sale) {
-      const savedMarketPrice = firstNumericValue(sale?.market_price, sale?.marketPrice);
+      const savedMarketPrice = firstNumericValue(getRecordValue(sale, ['market_price', 'marketPrice', 'market price', 'market price kes', 'selling_price', 'selling price', 'selling price kes']));
       if (savedMarketPrice) return savedMarketPrice;
-      const item = findInventoryItemByName(sale?.part);
-      return item ? getInventoryMarketPrice(item) : firstNumericValue(sale?.price);
+      const item = findInventoryItemByName(getSparePartSaleName(sale));
+      return item ? getInventoryMarketPrice(item) : firstNumericValue(getRecordValue(sale, ['price', 'sell_price', 'sellPrice', 'selling_price', 'selling price']));
     }
 
     function getSaleSellPrice(sale) {
-      return firstNumericValue(sale?.sell_price, sale?.sellPrice, sale?.price);
+      const savedSellPrice = firstNumericValue(getRecordValue(sale, ['sell_price', 'sellPrice', 'sell price', 'sell price kes', 'selling_price', 'selling price', 'selling price kes', 'price', 'price kes', 'unit_price', 'unit price', 'unit price kes']));
+      if (savedSellPrice) return savedSellPrice;
+      const qty = getSparePartSaleQty(sale);
+      const total = getSparePartSaleTotal(sale);
+      return qty > 0 ? total / qty : total;
+    }
+
+    function getSparePartSaleTotal(sale) {
+      const savedTotal = firstNumericValue(getRecordValue(sale, ['total', 'total kes', 'amount', 'amount kes', 'sales_total', 'salesTotal', 'sales total', 'sales total kes', 'total_bill', 'total bill', 'total bill kes']));
+      if (savedTotal > 0) return savedTotal;
+
+      const qty = getSparePartSaleQty(sale);
+      const explicitSellPrice = firstNumericValue(getRecordValue(sale, ['sell_price', 'sellPrice', 'sell price', 'sell price kes', 'selling_price', 'selling price', 'selling price kes', 'price', 'price kes', 'unit_price', 'unit price', 'unit price kes']));
+      if (qty > 0 && explicitSellPrice > 0) return qty * explicitSellPrice;
+
+      return parseMoneyFromSaleText(sale);
     }
 
     function calculateSparePartUnitProfit(sale) {
@@ -5336,8 +5499,18 @@
     }
 
     function calculateSparePartProfit(sale) {
-      const qty = Number(sale?.qty) || 0;
-      return calculateSparePartUnitProfit(sale) * qty;
+      const qty = getSparePartSaleQty(sale);
+      const calculatedProfit = calculateSparePartUnitProfit(sale) * qty;
+
+      const savedProfit = parseStoredNumber(getRecordValue(sale, ['profit', 'profit kes', 'profit_kes', 'sales_profit', 'salesProfit', 'sales profit', 'sales profit kes', 'spare parts profit', 'spare parts profit kes', 'spare_parts_profit']));
+      if (Number.isFinite(savedProfit) && (savedProfit !== 0 || calculatedProfit === 0)) {
+        return savedProfit;
+      }
+
+      const textProfit = parseMoneyFromSaleText(sale, ['profit'], false);
+      if (textProfit > 0) return textProfit;
+
+      return calculatedProfit;
     }
 
     function getOrgJobServiceFee(job) {
@@ -5350,7 +5523,7 @@
       const prefix = `${invoice}-ORG-PART-`;
       return DB.spareParts
         .filter(p => String(p.invoice || '').startsWith(prefix))
-        .reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        .reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
     }
 
     function getOrgJobBillPartsTotal(job) {
@@ -5389,6 +5562,21 @@
 
     function getInventoryStock(item) {
       return (Number(item?.opening) || 0) + (Number(item?.added) || 0) - (Number(item?.sold) || 0);
+    }
+
+    function calculateInventoryValue(items = DB.inventory) {
+      return items.reduce((sum, item) => sum + (getInventoryStock(item) * getInventoryBuyingPrice(item)), 0);
+    }
+
+    function calculateInventoryExpectedProfit(items = DB.inventory) {
+      return items.reduce((sum, item) => {
+        const stock = getInventoryStock(item);
+        return sum + (stock * (getInventoryMarketPrice(item) - getInventoryBuyingPrice(item)));
+      }, 0);
+    }
+
+    function calculateInventoryUnits(items = DB.inventory) {
+      return items.reduce((sum, item) => sum + getInventoryStock(item), 0);
     }
 
     function createInventoryPartOption(item) {
@@ -6507,7 +6695,7 @@
 
       // Calculate Today's stats
       const todayParts = DB.spareParts.filter(p => p.date === todayString);
-      const todayPartsSum = todayParts.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const todayPartsSum = todayParts.reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
 
       const todayRep = DB.repairs.filter(r => r.date === todayString);
       const todayRepSum = todayRep.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
@@ -6520,7 +6708,7 @@
       $('sub-today-revenue').textContent = `${todayParts.length} parts, ${todayRep.length} repairs`;
 
       // Monthly Revenue
-      const mPartsSum = DB.spareParts.filter(p => p.date && p.date.startsWith(thisMonthPrefix)).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const mPartsSum = DB.spareParts.filter(p => p.date && p.date.startsWith(thisMonthPrefix)).reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
       const mRepSum = DB.repairs.filter(r => r.date && r.date.startsWith(thisMonthPrefix)).reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
       const mOrgSum = calculateOrgServicesFee(DB.orgJobs.filter(o => o.date && o.date.startsWith(thisMonthPrefix)));
       const totalMonthIncome = mPartsSum + mRepSum + mOrgSum;
@@ -6528,11 +6716,11 @@
       $('sub-monthly-revenue').textContent = `Parts + Repairs + Org`;
 
       const allRepairFees = DB.repairs.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
-      const allPartsSales = DB.spareParts.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const allPartsSales = DB.spareParts.reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
       const allTimeOrgServices = calculateOrgServicesFee();
       const allTimeIncome = allRepairFees + allPartsSales + allTimeOrgServices;
       $('kpi-all-time-income').textContent = formatCurrency(allTimeIncome);
-      $('sub-all-time-income').textContent = 'Repair fees + parts sales + org services';
+      $('sub-all-time-income').textContent = 'Parts sales + service fees + org service fees';
 
       // Outstanding Debts
       const outstandingDebtsList = DB.debts.filter(d => ((Number(d.amount) || 0) - (Number(d.paid) || 0)) > 0);
@@ -6545,21 +6733,26 @@
       $('sub-active-repairs').textContent = `Repairs logged today`;
 
       // Inventory Value
-      const inventoryValue = DB.inventory.reduce((sum, item) => {
-        const stock = (Number(item.opening) || 0) + (Number(item.added) || 0) - (Number(item.sold) || 0);
-        return sum + (stock * getInventoryMarketPrice(item));
-      }, 0);
+      const inventoryValue = calculateInventoryValue();
+      const inventoryExpectedProfit = calculateInventoryExpectedProfit();
       $('kpi-inventory-value').textContent = formatCurrency(inventoryValue);
-      $('sub-inventory-value').textContent = `${DB.inventory.length} distinct products`;
+      $('sub-inventory-value').textContent = `${calculateInventoryUnits()} units in stock`;
+      const dashExpectedProfitEl = $('kpi-inventory-expected-profit');
+      const dashExpectedProfitSub = $('sub-inventory-expected-profit');
+      if (dashExpectedProfitEl) {
+        dashExpectedProfitEl.textContent = formatCurrency(inventoryExpectedProfit);
+        dashExpectedProfitEl.style.color = inventoryExpectedProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+      }
+      if (dashExpectedProfitSub) dashExpectedProfitSub.textContent = 'Current stock at market price';
 
       // Spare Parts Profit
       const mPartsProfit = DB.spareParts
         .filter(p => p.date && p.date.startsWith(thisMonthPrefix))
         .reduce((sum, p) => sum + calculateSparePartProfit(p), 0);
       const allPartsProfit = DB.spareParts.reduce((sum, p) => sum + calculateSparePartProfit(p), 0);
-      $('kpi-parts-profit').textContent = formatCurrency(mPartsProfit);
-      $('kpi-parts-profit').style.color = mPartsProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-      $('sub-parts-profit').textContent = `All time: ${formatCurrency(allPartsProfit)}`;
+      $('kpi-parts-profit').textContent = formatCurrency(allPartsProfit);
+      $('kpi-parts-profit').style.color = allPartsProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+      $('sub-parts-profit').textContent = `This month: ${formatCurrency(mPartsProfit)}`;
 
       // Monthly Expenses
       const mExpensesSum = DB.expenses.filter(e => e.date && e.date.startsWith(thisMonthPrefix)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
@@ -6571,13 +6764,13 @@
       const netIncome = allTimeIncome - allTimeExpenses;
       $('kpi-net-income').textContent = formatCurrency(netIncome);
       $('kpi-net-income').style.color = netIncome >= 0 ? 'var(--success)' : 'var(--danger)';
-      $('sub-net-income').textContent = 'All time income - expenses';
+      $('sub-net-income').textContent = `${formatCurrency(allTimeIncome)} - ${formatCurrency(allTimeExpenses)} expenses`;
 
       // Net Profit: repair services fee + org job fee + spare part sales profit.
       const netProfit = allRepairFees + allPartsProfit + allTimeOrgServices;
       $('kpi-net-profit').textContent = formatCurrency(netProfit);
       $('kpi-net-profit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-      $('sub-net-profit').textContent = 'Repair fees + org fees + spare parts profit';
+      $('sub-net-profit').textContent = 'Parts profit + service fees + org service fees';
 
       // Payroll Cost
       const totalPayrollCost = calculatePayrollTotal();
@@ -6641,7 +6834,7 @@
       }
 
       const dayValues = last7Days.map(dateStr => {
-        const parts = DB.spareParts.filter(p => p.date === dateStr).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const parts = DB.spareParts.filter(p => p.date === dateStr).reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         const reps = DB.repairs.filter(r => r.date === dateStr).reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
         const orgs = calculateOrgServicesFee(DB.orgJobs.filter(o => o.date === dateStr));
         return parts + reps + orgs;
@@ -6680,8 +6873,8 @@
       // WIDGET: TOP 5 SELLING PARTS
       const partSalesMap = {};
       DB.spareParts.forEach(p => {
-        const name = p.part;
-        const qty = Number(p.qty) || 0;
+        const name = getSparePartSaleName(p);
+        const qty = getSparePartSaleQty(p);
         if (name) {
           partSalesMap[name] = (partSalesMap[name] || 0) + qty;
         }
@@ -6756,7 +6949,7 @@
 
       // RECENT TRANSACTIONS (Last 10 combined with type icons)
       const list = [];
-      DB.spareParts.forEach(p => list.push({ date: p.date, type: 'Parts', ref: p.invoice, desc: p.part, amt: Number(p.total), pay: p.payment, cat: 'income', created: p.created_at }));
+      DB.spareParts.forEach(p => list.push({ date: p.date, type: 'Parts', ref: p.invoice, desc: getSparePartSaleName(p), amt: getSparePartSaleTotal(p), pay: p.payment, cat: 'income', created: p.created_at }));
       DB.repairs.forEach(r => list.push({ date: r.date, type: 'Repair', ref: r.job, desc: `${r.customer} - ${r.model || 'No model'}`, amt: Number(r.fee), pay: r.payment, cat: 'income', created: r.created_at }));
       DB.orgJobs.forEach(o => list.push({ date: o.date, type: 'Org Job', ref: o.invoice, desc: `${o.org_name} (${o.bikes} bikes)`, amt: getOrgJobServiceFee(o), pay: o.status, cat: 'income', created: o.created_at }));
       DB.expenses.forEach(e => list.push({ date: e.date, type: 'Expense', ref: 'EXPENSE', desc: `${e.category} - ${e.description}`, amt: Number(e.amount), pay: e.payment, cat: 'expense', created: e.created_at }));
@@ -6838,6 +7031,170 @@
     // ==========================================
     // MODULE 2: SPARE PARTS SALES
     // ==========================================
+    function normalizeSearchText(value) {
+      return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+
+    function getSparePartSearchFields(sale) {
+      const part = getSparePartSaleName(sale);
+      const total = getSparePartSaleTotal(sale);
+      const profit = calculateSparePartProfit(sale);
+      return {
+        part,
+        invoice: getRecordValue(sale, ['invoice', 'invoice_no', 'invoice no', 'ref']) || '',
+        customer: getRecordValue(sale, ['customer', 'customer_name', 'customer name', 'name']) || '',
+        phone: getRecordValue(sale, ['phone', 'mobile', 'telephone']) || '',
+        payment: getRecordValue(sale, ['payment', 'payment_method', 'payment method']) || '',
+        date: getRecordValue(sale, ['date', 'sale_date', 'sale date']) || '',
+        total,
+        profit,
+        searchable: normalizeSearchText([
+          part,
+          getRecordValue(sale, ['invoice', 'invoice_no', 'invoice no', 'ref']),
+          getRecordValue(sale, ['customer', 'customer_name', 'customer name', 'name']),
+          getRecordValue(sale, ['phone', 'mobile', 'telephone']),
+          getRecordValue(sale, ['payment', 'payment_method', 'payment method']),
+          getRecordValue(sale, ['date', 'sale_date', 'sale date']),
+          formatCurrency(total, false),
+          formatCurrency(profit, false),
+          getRecordValue(sale, ['description', 'desc', 'notes'])
+        ].filter(Boolean).join(' '))
+      };
+    }
+
+    function scoreSparePartSearchResult(sale, query) {
+      const normalizedQuery = normalizeSearchText(query);
+      if (!normalizedQuery) return 0;
+      const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+      const fields = getSparePartSearchFields(sale);
+      const weightedFields = [
+        [fields.part, 80],
+        [fields.invoice, 70],
+        [fields.customer, 50],
+        [fields.phone, 45],
+        [fields.payment, 35],
+        [fields.date, 30],
+        [String(fields.total), 25],
+        [String(fields.profit), 20],
+        [fields.searchable, 10]
+      ];
+
+      let score = 0;
+      for (const term of terms) {
+        let termMatched = false;
+        for (const [value, weight] of weightedFields) {
+          const field = normalizeSearchText(value);
+          if (!field) continue;
+          if (field === term) {
+            score += weight + 25;
+            termMatched = true;
+          } else if (field.startsWith(term)) {
+            score += weight + 15;
+            termMatched = true;
+          } else if (field.includes(term)) {
+            score += weight;
+            termMatched = true;
+          }
+        }
+        if (!termMatched) return 0;
+      }
+      return score;
+    }
+
+    function getRankedSparePartSales(query, list = DB.spareParts) {
+      const normalizedQuery = normalizeSearchText(query);
+      if (!normalizedQuery) {
+        return [...list].sort((a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0));
+      }
+
+      return list
+        .map((sale) => ({ sale, score: scoreSparePartSearchResult(sale, normalizedQuery) }))
+        .filter(item => item.score > 0)
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return new Date(b.sale.created_at || b.sale.date || 0) - new Date(a.sale.created_at || a.sale.date || 0);
+        })
+        .map(item => item.sale);
+    }
+
+    function getPartSuggestionRank(sale, query) {
+      const normalizedQuery = normalizeSearchText(query);
+      const part = normalizeSearchText(getSparePartSaleName(sale));
+      if (!normalizedQuery || !part) return null;
+
+      const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+      let earliestIndex = Number.POSITIVE_INFINITY;
+      let totalIndex = 0;
+
+      for (const term of terms) {
+        const index = part.indexOf(term);
+        if (index === -1) return null;
+        earliestIndex = Math.min(earliestIndex, index);
+        totalIndex += index;
+      }
+
+      const firstWord = part.split(/\s+/)[0] || part;
+      const startsFirstWord = firstWord.startsWith(terms[0]) ? 0 : 1;
+      return {
+        earliestIndex,
+        totalIndex,
+        startsFirstWord,
+        partLength: part.length
+      };
+    }
+
+    function getSuggestionOrderedSparePartSales(query, matches) {
+      return matches
+        .map((sale) => ({ sale, rank: getPartSuggestionRank(sale, query) }))
+        .filter(item => item.rank)
+        .sort((a, b) => {
+          if (a.rank.earliestIndex !== b.rank.earliestIndex) return a.rank.earliestIndex - b.rank.earliestIndex;
+          if (a.rank.startsFirstWord !== b.rank.startsFirstWord) return a.rank.startsFirstWord - b.rank.startsFirstWord;
+          if (a.rank.totalIndex !== b.rank.totalIndex) return a.rank.totalIndex - b.rank.totalIndex;
+          if (a.rank.partLength !== b.rank.partLength) return a.rank.partLength - b.rank.partLength;
+          return new Date(b.sale.created_at || b.sale.date || 0) - new Date(a.sale.created_at || a.sale.date || 0);
+        })
+        .map(item => item.sale);
+    }
+
+    function renderSparePartSearchSuggestions(query, matches) {
+      const box = $('spare-parts-search-suggestions');
+      if (!box) return;
+      const normalizedQuery = normalizeSearchText(query);
+      const suggestionMatches = getSuggestionOrderedSparePartSales(query, matches);
+      if (!normalizedQuery || suggestionMatches.length === 0) {
+        box.classList.remove('active');
+        box.innerHTML = '';
+        return;
+      }
+
+      box.innerHTML = suggestionMatches.slice(0, 6).map((sale, index) => {
+        const fields = getSparePartSearchFields(sale);
+        return `
+          <button type="button" class="search-suggestion-item" data-index="${index}">
+            <span>
+              <span class="search-suggestion-title">${escapeHtml(fields.part || 'Spare part sale')}</span>
+              <span class="search-suggestion-meta">${escapeHtml(fields.invoice || '-')} · ${escapeHtml(fields.customer || 'Walk-in')} · ${escapeHtml(fields.date || '-')}</span>
+            </span>
+            <span class="search-suggestion-amount">${formatCurrency(fields.total)}</span>
+          </button>
+        `;
+      }).join('');
+      box.classList.add('active');
+
+      box.querySelectorAll('.search-suggestion-item').forEach(btn => {
+        btn.onclick = () => {
+          const sale = suggestionMatches[Number(btn.dataset.index)];
+          if (!sale) return;
+          $('spare-parts-search').value = getRecordValue(sale, ['invoice', 'invoice_no', 'invoice no', 'ref']) || getSparePartSaleName(sale) || '';
+          box.classList.remove('active');
+          const pager = $('spare-parts-pagination');
+          if (pager) pager.currentPage = 1;
+          renderSparePartsModule();
+        };
+      });
+    }
+
     function renderSparePartsModule() {
       // Set date to today if empty
       if (!$('sale-date').value) {
@@ -6853,29 +7210,29 @@
 
       // Check database validity before updating stats (Today Total Sales, Today Invoices, Cash Revenue, M-Pesa Revenue, Credit Total)
       let databaseValid = Array.isArray(DB.spareParts);
-      if (databaseValid && DB.spareParts.length > 0) {
-        const firstRecord = DB.spareParts[0];
-        if (firstRecord.date === undefined || firstRecord.total === undefined || firstRecord.payment === undefined) {
-          databaseValid = false;
-        }
-      }
-
       if (databaseValid) {
         const todaySales = DB.spareParts.filter(p => p.date === todayString);
 
         // Update local quick stats (safely preventing NaN)
-        const todayTotalSum = todaySales.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const todayTotalSum = todaySales.reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         $('parts-stat-today').textContent = formatCurrency(todayTotalSum);
         $('parts-stat-count').textContent = todaySales.length;
 
-        const cashSum = todaySales.filter(p => p.payment === 'Cash').reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const cashSum = todaySales.filter(p => p.payment === 'Cash').reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         $('parts-stat-cash').textContent = formatCurrency(cashSum);
 
-        const mpesaSum = todaySales.filter(p => p.payment === 'M-Pesa').reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const mpesaSum = todaySales.filter(p => p.payment === 'M-Pesa').reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         $('parts-stat-mpesa').textContent = formatCurrency(mpesaSum);
 
-        const creditSum = todaySales.filter(p => p.payment === 'Credit').reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const creditSum = todaySales.filter(p => p.payment === 'Credit').reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         $('parts-stat-credit').textContent = formatCurrency(creditSum);
+
+        const expectedInventoryProfit = calculateInventoryExpectedProfit();
+        const expectedProfitEl = $('parts-stat-expected-profit');
+        if (expectedProfitEl) {
+          expectedProfitEl.textContent = formatCurrency(expectedInventoryProfit);
+          expectedProfitEl.style.color = expectedInventoryProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+        }
       } else {
         console.warn("Spare Parts database requirement check failed. Skipping statistics update.");
       }
@@ -6885,21 +7242,20 @@
       const filterDate = $('spare-date-filter').value;
       const thisMonthPrefix = new Date().toISOString().substring(0, 7);
 
-      let list = DB.spareParts;
-      if (search) {
-        list = list.filter(p => p.invoice.toLowerCase().includes(search) || p.part.toLowerCase().includes(search) || (p.customer && p.customer.toLowerCase().includes(search)));
-      }
+      let list = getRankedSparePartSales(search, DB.spareParts);
       if (filterDate === 'today') {
-        list = list.filter(p => p.date === todayString);
+        list = list.filter(p => getRecordValue(p, ['date', 'sale_date', 'sale date']) === todayString);
       } else if (filterDate === 'month') {
-        list = list.filter(p => p.date && p.date.startsWith(thisMonthPrefix));
+        list = list.filter(p => String(getRecordValue(p, ['date', 'sale_date', 'sale date']) || '').startsWith(thisMonthPrefix));
       }
 
-      // Sort newest sales first
-      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      if (!search) {
+        list.sort((a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0));
+      }
+      renderSparePartSearchSuggestions(search, list);
 
       const tbody = $('spare-parts-tbody');
-      const sumTotal = list.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const sumTotal = list.reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
       const sumProfit = list.reduce((sum, p) => sum + calculateSparePartProfit(p), 0);
 
       paginateTable({
@@ -6912,16 +7268,17 @@
           const buyingPrice = getSaleBuyingPrice(p);
           const marketPrice = getSaleMarketPrice(p);
           const sellPrice = getSaleSellPrice(p);
+          const qty = getSparePartSaleQty(p);
           const profit = calculateSparePartProfit(p);
           row.innerHTML = `
-            <td style="font-family: var(--font-mono);">${escapeHtml(p.date || '-')}</td>
-            <td style="font-family: var(--font-mono); font-weight:600;">${escapeHtml(p.invoice || '-')}</td>
-            <td><strong>${escapeHtml(p.part || '-')}</strong></td>
-            <td style="font-family: var(--font-mono);">${escapeHtml(p.qty !== undefined ? p.qty : '-')}</td>
+            <td style="font-family: var(--font-mono);">${escapeHtml(getRecordValue(p, ['date', 'sale_date', 'sale date']) || '-')}</td>
+            <td style="font-family: var(--font-mono); font-weight:600;">${escapeHtml(getRecordValue(p, ['invoice', 'invoice_no', 'invoice no', 'ref']) || '-')}</td>
+            <td><strong>${escapeHtml(getSparePartSaleName(p) || '-')}</strong></td>
+            <td style="font-family: var(--font-mono);">${escapeHtml(qty || qty === 0 ? qty : '-')}</td>
             <td style="font-family: var(--font-mono);">${formatCurrency(buyingPrice)}</td>
             <td style="font-family: var(--font-mono);">${formatCurrency(marketPrice)}</td>
             <td style="font-family: var(--font-mono);">${formatCurrency(sellPrice)}</td>
-            <td style="font-family: var(--font-mono); font-weight:600;">${formatCurrency(p.total)}</td>
+            <td style="font-family: var(--font-mono); font-weight:600;">${formatCurrency(getSparePartSaleTotal(p))}</td>
             <td style="font-family: var(--font-mono); font-weight:600; color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatCurrency(profit)}</td>
             <td><span class="status-badge ${p.payment === 'Credit' ? 'status-unpaid' : 'status-paid'}">${escapeHtml(p.payment || 'Cash')}</span></td>
             <td>${escapeHtml(p.customer || '-')}</td>
@@ -6950,8 +7307,8 @@
               $('edit-spare-id').value = item.id;
               $('edit-spare-date').value = item.date;
               $('edit-spare-invoice').value = item.invoice;
-              $('edit-spare-part').value = item.part;
-              $('edit-spare-qty').value = item.qty;
+              $('edit-spare-part').value = getSparePartSaleName(item);
+              $('edit-spare-qty').value = getSparePartSaleQty(item);
               $('edit-spare-buying-price').value = getSaleBuyingPrice(item);
               $('edit-spare-market-price').value = getSaleMarketPrice(item);
               $('edit-spare-price').value = getSaleSellPrice(item);
@@ -7647,6 +8004,9 @@
       $('inv-stat-out').textContent = `${outOfStock} items`;
       $('inv-stat-low').textContent = `${lowStock} items`;
       $('inv-stat-good').textContent = `${goodStock} items`;
+      const inventoryValue = calculateInventoryValue();
+      const invValueEl = $('inv-stat-value');
+      if (invValueEl) invValueEl.textContent = formatCurrency(inventoryValue);
 
       const search = $('inventory-search').value.toLowerCase().trim();
       let list = DB.inventory;
@@ -7756,7 +8116,7 @@
         const monthNumStr = String(idx + 1).padStart(2, '0');
         const monthPrefix = `${year}-${monthNumStr}`;
 
-        const partsTotal = DB.spareParts.filter(p => p.date && p.date.startsWith(monthPrefix)).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+        const partsTotal = DB.spareParts.filter(p => p.date && p.date.startsWith(monthPrefix)).reduce((sum, p) => sum + getSparePartSaleTotal(p), 0);
         const repairsTotal = DB.repairs.filter(r => r.date && r.date.startsWith(monthPrefix)).reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
         const orgTotal = calculateOrgServicesFee(DB.orgJobs.filter(o => o.date && o.date.startsWith(monthPrefix)));
 
@@ -8002,9 +8362,9 @@
           date: p.date || p.created_at,
           type: 'part',
           title: `⚙️ Spare Part Sale: ${p.invoice || 'N/A'}`,
-          desc: `Bought ${p.qty}x ${p.part} @ ${formatCurrency(getSaleSellPrice(p))}`,
+          desc: `Bought ${getSparePartSaleQty(p) || '-'}x ${getSparePartSaleName(p) || 'spare part'} @ ${formatCurrency(getSaleSellPrice(p))}`,
           payment: p.payment || 'Cash',
-          cost: Number(p.total) || 0,
+          cost: getSparePartSaleTotal(p),
           rawDate: new Date(p.date || p.created_at)
         });
       });
@@ -8815,8 +9175,24 @@
     // ==========================================
 
     // Live client side searching on in-memory collections
-    $('spare-parts-search').addEventListener('input', () => renderSparePartsModule());
-    $('spare-date-filter').addEventListener('change', () => renderSparePartsModule());
+    $('spare-parts-search').addEventListener('input', debounce(() => {
+      const pager = $('spare-parts-pagination');
+      if (pager) pager.currentPage = 1;
+      renderSparePartsModule();
+    }, 120));
+    $('spare-date-filter').addEventListener('change', () => {
+      const pager = $('spare-parts-pagination');
+      if (pager) pager.currentPage = 1;
+      renderSparePartsModule();
+    });
+    $('spare-parts-search').addEventListener('focus', () => renderSparePartsModule());
+    document.addEventListener('click', (e) => {
+      const suggestions = $('spare-parts-search-suggestions');
+      const searchBox = $('spare-parts-search')?.closest('.search-box');
+      if (suggestions && searchBox && !searchBox.contains(e.target)) {
+        suggestions.classList.remove('active');
+      }
+    });
     $('repairs-search').addEventListener('input', () => renderRepairsModule());
     $('org-search').addEventListener('input', () => renderOrganisationModule());
     $('debts-search').addEventListener('input', () => renderDebtsModule());
@@ -8908,9 +9284,12 @@
 
         // Add calculated dynamic totals in edits
         if (formId === 'edit-spare-form') {
-          updates.sell_price = Number(updates.price) || 0;
-          updates.total = Number(updates.qty) * Number(updates.price);
-          updates.profit = (Number(updates.price) - (Number(updates.buying_price) || 0)) * Number(updates.qty);
+          const qty = firstNumericValue(updates.qty);
+          const sellPrice = firstNumericValue(updates.price);
+          const buyingPrice = firstNumericValue(updates.buying_price);
+          updates.sell_price = sellPrice;
+          updates.total = qty * sellPrice;
+          updates.profit = (sellPrice - buyingPrice) * qty;
         }
 
         if (formId === 'edit-inventory-form') {
