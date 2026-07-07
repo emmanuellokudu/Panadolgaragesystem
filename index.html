@@ -1296,6 +1296,78 @@
       color: var(--success);
     }
 
+    /* SEARCHABLE SELECT DROPDOWN */
+    .searchable-select-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .searchable-select-input {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 12px center;
+      background-repeat: no-repeat;
+      background-size: 18px 18px;
+      padding-right: 36px !important;
+    }
+
+    .searchable-select-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .searchable-select-dropdown.active {
+      display: block;
+    }
+
+    .searchable-select-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      transition: background var(--duration-fast) var(--ease-out);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .searchable-select-item:last-child {
+      border-bottom: none;
+    }
+
+    .searchable-select-item:hover {
+      background: var(--bg-subtle);
+    }
+
+    .searchable-select-item.selected {
+      background: var(--red-glow);
+      color: var(--red-dark);
+      font-weight: 600;
+    }
+
+    .searchable-select-item.disabled {
+      color: var(--muted);
+      cursor: not-allowed;
+      background: var(--bg-subtle);
+      opacity: 0.7;
+    }
+
+    .searchable-select-no-match {
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+    }
+
     /* BADGES */
     .status-badge {
       display: inline-flex;
@@ -3188,8 +3260,8 @@
                     <span class="form-error"></span>
                   </div>
                   <div class="form-group">
-                    <label for="sale-qty">Quantity <span class="req">*</span></label>
-                    <input type="number" id="sale-qty" class="form-control" min="1" step="1" required>
+                    <label for="sale-qty">Quantity</label>
+                    <input type="number" id="sale-qty" class="form-control" min="1" step="1">
                     <span class="form-error"></span>
                   </div>
                   <div class="form-group">
@@ -3201,8 +3273,8 @@
                     <input type="number" id="sale-market-price" class="form-control" min="0" step="any" readonly>
                   </div>
                   <div class="form-group">
-                    <label for="sale-price">Sell Price After Discount (KES) <span class="req">*</span></label>
-                    <input type="number" id="sale-price" class="form-control" min="0.01" step="any" required>
+                    <label for="sale-price">Sell Price After Discount (KES)</label>
+                    <input type="number" id="sale-price" class="form-control" min="0.01" step="any">
                     <span class="form-error"></span>
                   </div>
                   <div class="form-group">
@@ -3239,6 +3311,17 @@
                   <div class="form-group">
                     <label for="sale-due-date">Due Date <span class="req">*</span></label>
                     <input type="date" id="sale-due-date" class="form-control">
+                    <span class="form-error"></span>
+                  </div>
+                  <div class="form-group">
+                    <label for="sale-credit-deposit">Deposit Paid / Amount Paid (KES)</label>
+                    <input type="number" id="sale-credit-deposit" class="form-control" min="0" step="any" value="0">
+                    <span class="form-error"></span>
+                  </div>
+                  <div class="form-group span-full">
+                    <label for="sale-credit-notes">Debt Details / Description</label>
+                    <input type="text" id="sale-credit-notes" class="form-control"
+                      placeholder="E.g., Customer promised to pay balance on Friday">
                     <span class="form-error"></span>
                   </div>
                 </div>
@@ -3885,6 +3968,26 @@
 
         <!-- PAGE 6: EXPENSE TRACKER -->
         <section id="page-expenses" class="page-view">
+
+          <!-- EXPENSES KPI SUMMARY CARDS -->
+          <div class="kpi-grid" style="margin-bottom: 20px;" aria-live="polite">
+            <div class="kpi-card" style="border-left: 4px solid var(--red);">
+              <div class="kpi-card-left">
+                <span class="kpi-label">Overall Expenses</span>
+                <span class="kpi-value" id="expenses-kpi-overall">KES 0</span>
+                <span class="kpi-sub">All-time business overheads</span>
+              </div>
+              <span class="kpi-icon">💰</span>
+            </div>
+            <div class="kpi-card" style="border-left: 4px solid var(--warning);">
+              <div class="kpi-card-left">
+                <span class="kpi-label">Monthly Expenses</span>
+                <span class="kpi-value" id="expenses-kpi-monthly">KES 0</span>
+                <span class="kpi-sub" id="expenses-sub-monthly">Loading...</span>
+              </div>
+              <span class="kpi-icon">📈</span>
+            </div>
+          </div>
 
           <!-- ENTRY FORM -->
           <div class="card no-print">
@@ -5360,7 +5463,7 @@
 
     // Format currency consistently
     function formatCurrency(amount, showPrefix = true) {
-      const num = Number(amount) || 0;
+      const num = parseStoredNumber(amount) || 0;
       const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
       return showPrefix ? `KES ${formatted}` : formatted;
     }
@@ -5541,8 +5644,16 @@
     }
 
     function computePartsTotal() {
-      const qty = Number($('sale-qty')?.value) || 0;
-      const price = Number($('sale-price')?.value) || 0;
+      const qtyVal = $('sale-qty')?.value;
+      let qty = Number(qtyVal);
+      if (!qtyVal || isNaN(qty) || qty <= 0) {
+        qty = 1;
+      }
+      const priceVal = $('sale-price')?.value;
+      let price = Number(priceVal);
+      if (!priceVal || isNaN(price) || price === 0) {
+        price = Number($('sale-market-price')?.value) || 0;
+      }
       const totalField = $('sale-total');
       if (totalField) totalField.value = (qty * price).toFixed(2);
     }
@@ -5594,8 +5705,190 @@
     function populateInventorySelect(select) {
       if (!select) return;
       select.innerHTML = '<option value="">-- Choose Stock Item --</option>';
-      DB.inventory.forEach(item => select.appendChild(createInventoryPartOption(item)));
+      const sorted = [...DB.inventory].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      sorted.forEach(item => select.appendChild(createInventoryPartOption(item)));
+
+      makeSelectSearchable(select);
     }
+
+    function syncSearchableSelect(select) {
+      if (!select) return;
+      const wrapper = select.parentNode;
+      if (wrapper && wrapper.classList.contains('searchable-select-wrapper')) {
+        const input = wrapper.querySelector('.searchable-select-input');
+        if (input) {
+          const selectedOpt = select.options[select.selectedIndex];
+          input.value = selectedOpt && select.value ? selectedOpt.textContent : '';
+        }
+      }
+    }
+
+    function closeAllSearchableDropdowns() {
+      document.querySelectorAll('.searchable-select-dropdown.active').forEach(d => {
+        d.classList.remove('active');
+        const wrapper = d.closest('.searchable-select-wrapper');
+        if (wrapper) {
+          const select = wrapper.querySelector('select');
+          const input = wrapper.querySelector('.searchable-select-input');
+          if (select && input) {
+            const selectedOpt = select.options[select.selectedIndex];
+            input.value = selectedOpt && select.value ? selectedOpt.textContent : '';
+          }
+        }
+      });
+    }
+
+    function makeSelectSearchable(select) {
+      if (!select) return;
+
+      let wrapper = select.parentNode;
+      let input, dropdown;
+
+      if (wrapper && wrapper.classList.contains('searchable-select-wrapper')) {
+        input = wrapper.querySelector('.searchable-select-input');
+        dropdown = wrapper.querySelector('.searchable-select-dropdown');
+      } else {
+        // Create wrapper
+        wrapper = document.createElement('div');
+        wrapper.className = 'searchable-select-wrapper';
+
+        // Insert wrapper before select
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+
+        // Hide original select visually but keep it in DOM
+        select.style.display = 'none';
+
+        // Create input
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control searchable-select-input';
+        input.placeholder = select.options[0] ? select.options[0].textContent : 'Select part...';
+        input.autocomplete = 'off';
+        wrapper.appendChild(input);
+
+        // Create dropdown
+        dropdown = document.createElement('div');
+        dropdown.className = 'searchable-select-dropdown';
+        wrapper.appendChild(dropdown);
+
+        // Input Focus
+        input.addEventListener('focus', () => {
+          closeAllSearchableDropdowns();
+          dropdown.classList.add('active');
+          input.select();
+          renderDropdownOptions();
+        });
+
+        // Input search filtering
+        input.addEventListener('input', () => {
+          renderDropdownOptions(input.value);
+        });
+
+        // Close on escape key
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            closeDropdown();
+            input.blur();
+          }
+        });
+
+        // Document click outside to close
+        document.addEventListener('click', (e) => {
+          if (!wrapper.contains(e.target)) {
+            closeDropdown();
+          }
+        });
+      }
+
+      function closeDropdown() {
+        if (dropdown.classList.contains('active')) {
+          dropdown.classList.remove('active');
+          const selectedOpt = select.options[select.selectedIndex];
+          input.value = selectedOpt && select.value ? selectedOpt.textContent : '';
+        }
+      }
+
+      function renderDropdownOptions(filterText = '') {
+        const list = dropdown;
+        list.innerHTML = '';
+
+        const filter = filterText.toLowerCase().trim();
+
+        let matchingOptions = [];
+        Array.from(select.options).forEach((opt, idx) => {
+          // Skip the placeholder option if empty value
+          if (idx === 0 && !opt.value) return;
+
+          const text = opt.textContent;
+          const val = opt.value;
+
+          if (!filter) {
+            matchingOptions.push({ opt, index: 0 });
+          } else {
+            const lowerText = text.toLowerCase();
+            const matchIndex = lowerText.indexOf(filter);
+            if (matchIndex !== -1) {
+              matchingOptions.push({ opt, index: matchIndex });
+            }
+          }
+        });
+
+        // Sort matching options: by match index first (0, then 1, etc.), then alphabetically
+        matchingOptions.sort((a, b) => {
+          if (a.index !== b.index) {
+            return a.index - b.index;
+          }
+          return a.opt.textContent.localeCompare(b.opt.textContent);
+        });
+
+        matchingOptions.forEach(({ opt }) => {
+          const text = opt.textContent;
+          const val = opt.value;
+
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'searchable-select-item';
+          if (opt.disabled) itemDiv.classList.add('disabled');
+          if (select.value === val) itemDiv.classList.add('selected');
+
+          itemDiv.textContent = text;
+
+          if (!opt.disabled) {
+            itemDiv.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              select.value = val;
+              select.dispatchEvent(new Event('change'));
+              input.value = text;
+              dropdown.classList.remove('active');
+            });
+          }
+
+          list.appendChild(itemDiv);
+        });
+
+        if (matchingOptions.length === 0) {
+          const noMatch = document.createElement('div');
+          noMatch.className = 'searchable-select-no-match';
+          noMatch.textContent = 'No matching items found';
+          list.appendChild(noMatch);
+        }
+      }
+
+      // Sync placeholder and value based on new options
+      input.placeholder = select.options[0] ? select.options[0].textContent : 'Select part...';
+      const selectedOpt = select.options[select.selectedIndex];
+      input.value = selectedOpt && select.value ? selectedOpt.textContent : '';
+    }
+
+    // Global document reset event listener to sync searchable select values
+    document.addEventListener('reset', (e) => {
+      setTimeout(() => {
+        const form = e.target;
+        if (form) {
+          form.querySelectorAll('.searchable-select-wrapper select').forEach(syncSearchableSelect);
+        }
+      }, 20);
+    });
 
     function calculateRepairPartsTotal() {
       return collectRepairPartItems().reduce((sum, item) => sum + item.total, 0);
@@ -5630,10 +5923,18 @@
         .map((row) => {
           const part = row.querySelector('.repair-part-select')?.value || '';
           const inventoryItem = findInventoryItemByName(part);
-          const qty = Number(row.querySelector('.repair-part-qty')?.value) || 0;
+          const qtyVal = row.querySelector('.repair-part-qty')?.value;
+          let qty = Number(qtyVal);
+          if (!qtyVal || isNaN(qty) || qty <= 0) {
+            qty = 1;
+          }
           const buyingPrice = inventoryItem ? getInventoryBuyingPrice(inventoryItem) : 0;
           const marketPrice = inventoryItem ? getInventoryMarketPrice(inventoryItem) : 0;
-          const sellPrice = Number(row.querySelector('.repair-part-price')?.value) || 0;
+          const sellPriceVal = row.querySelector('.repair-part-price')?.value;
+          let sellPrice = Number(sellPriceVal);
+          if (!sellPriceVal || isNaN(sellPrice) || sellPrice === 0) {
+            sellPrice = marketPrice;
+          }
           return {
             part,
             qty,
@@ -5653,9 +5954,13 @@
       if (!container) return false;
       return Array.from(container.querySelectorAll('.repair-part-row')).some(row => {
         const part = row.querySelector('.repair-part-select')?.value || '';
-        const qty = Number(row.querySelector('.repair-part-qty')?.value) || 0;
-        const price = Number(row.querySelector('.repair-part-price')?.value) || 0;
-        return Boolean(part || qty || price) && !(part && qty > 0 && price > 0);
+        const qtyVal = row.querySelector('.repair-part-qty')?.value;
+        const qty = Number(qtyVal) || (qtyVal === '' ? 1 : 0);
+        const priceVal = row.querySelector('.repair-part-price')?.value;
+        const inventoryItem = findInventoryItemByName(part);
+        const marketPrice = inventoryItem ? getInventoryMarketPrice(inventoryItem) : 0;
+        const price = Number(priceVal) || (priceVal === '' ? marketPrice : 0);
+        return Boolean(part || qtyVal || priceVal) && !(part && qty > 0 && price > 0);
       });
     }
 
@@ -5690,10 +5995,18 @@
         .map((row) => {
           const part = row.querySelector('.org-part-select')?.value || '';
           const inventoryItem = findInventoryItemByName(part);
-          const qty = Number(row.querySelector('.org-part-qty')?.value) || 0;
+          const qtyVal = row.querySelector('.org-part-qty')?.value;
+          let qty = Number(qtyVal);
+          if (!qtyVal || isNaN(qty) || qty <= 0) {
+            qty = 1;
+          }
           const buyingPrice = inventoryItem ? getInventoryBuyingPrice(inventoryItem) : 0;
           const marketPrice = inventoryItem ? getInventoryMarketPrice(inventoryItem) : 0;
-          const sellPrice = Number(row.querySelector('.org-part-price')?.value) || 0;
+          const sellPriceVal = row.querySelector('.org-part-price')?.value;
+          let sellPrice = Number(sellPriceVal);
+          if (!sellPriceVal || isNaN(sellPrice) || sellPrice === 0) {
+            sellPrice = marketPrice;
+          }
           return {
             part,
             qty,
@@ -5713,9 +6026,13 @@
       if (!container) return false;
       return Array.from(container.querySelectorAll('.org-part-row')).some(row => {
         const part = row.querySelector('.org-part-select')?.value || '';
-        const qty = Number(row.querySelector('.org-part-qty')?.value) || 0;
-        const price = Number(row.querySelector('.org-part-price')?.value) || 0;
-        return Boolean(part || qty || price) && !(part && qty > 0 && price > 0);
+        const qtyVal = row.querySelector('.org-part-qty')?.value;
+        const qty = Number(qtyVal) || (qtyVal === '' ? 1 : 0);
+        const priceVal = row.querySelector('.org-part-price')?.value;
+        const inventoryItem = findInventoryItemByName(part);
+        const marketPrice = inventoryItem ? getInventoryMarketPrice(inventoryItem) : 0;
+        const price = Number(priceVal) || (priceVal === '' ? marketPrice : 0);
+        return Boolean(part || qtyVal || priceVal) && !(part && qty > 0 && price > 0);
       });
     }
 
@@ -6168,6 +6485,9 @@
       // Auto update dynamic total on spare parts sale
       $('sale-qty').addEventListener('input', computePartsTotal);
       $('sale-price').addEventListener('input', computePartsTotal);
+      $('sale-credit-deposit').addEventListener('input', () => {
+        Validator.clearError($('sale-credit-deposit'));
+      });
       $('repair-fee').addEventListener('input', syncRepairCartSummary);
       $('btn-add-repair-part').addEventListener('click', () => addRepairPartRow());
 
@@ -6226,6 +6546,11 @@
           const due = new Date();
           due.setDate(due.getDate() + 30);
           $('sale-due-date').value = getLocalDateString(due);
+          $('sale-credit-deposit').value = '0';
+          $('sale-credit-notes').value = '';
+        } else {
+          $('sale-credit-deposit').value = '0';
+          $('sale-credit-notes').value = '';
         }
       });
 
@@ -6262,6 +6587,7 @@
               setRequiredField('sale-customer', false);
               setRequiredField('sale-phone', false);
               setRequiredField('sale-due-date', false);
+              $('sale-credit-group').style.display = 'none';
             }
             const formCard = form.closest('.card.no-print');
             if (formCard) formCard.style.display = 'none';
@@ -6458,8 +6784,14 @@
         const marketPrice = opt.getAttribute('data-market-price') || '';
         $('sale-buying-price').value = buyingPrice;
         $('sale-market-price').value = marketPrice;
-        $('sale-price').value = '0';
+        $('sale-price').value = '';
         $('sale-price').placeholder = marketPrice ? `Suggested ${formatCurrency(Number(marketPrice))}` : 'Enter actual selling price';
+
+        // Default quantity to 1 if not already put
+        if (!$('sale-qty').value || Number($('sale-qty').value) <= 0) {
+          $('sale-qty').value = '1';
+        }
+
         computePartsTotal();
       };
 
@@ -6489,7 +6821,10 @@
       const lineTotal = row.querySelector('.repair-part-line-total');
 
       populateInventorySelect(select);
-      if (values.part) select.value = values.part;
+      if (values.part) {
+        select.value = values.part;
+        syncSearchableSelect(select);
+      }
 
       const syncMarketHint = () => {
         const opt = select.options[select.selectedIndex];
@@ -6499,16 +6834,25 @@
       };
 
       const recalc = () => {
-        const qty = Number(qtyInput.value) || 0;
-        const sellPrice = Number(priceInput.value) || 0;
+        const qtyVal = qtyInput.value;
+        let qty = Number(qtyVal);
+        if (!qtyVal || isNaN(qty) || qty <= 0) {
+          qty = 1;
+        }
+        const priceVal = priceInput.value;
+        let sellPrice = Number(priceVal);
+        if (!priceVal || isNaN(sellPrice) || sellPrice === 0) {
+          const opt = select.options[select.selectedIndex];
+          sellPrice = Number(opt?.getAttribute('data-market-price')) || 0;
+        }
         lineTotal.value = (qty * sellPrice).toFixed(2);
         syncRepairPartsHiddenField();
       };
 
       select.addEventListener('change', () => {
         syncMarketHint();
-        priceInput.value = '0';
-        if (!qtyInput.value) qtyInput.value = 1;
+        priceInput.value = '';
+        if (!qtyInput.value || Number(qtyInput.value) <= 0) qtyInput.value = 1;
         recalc();
       });
       qtyInput.addEventListener('input', recalc);
@@ -6545,7 +6889,10 @@
       const lineTotal = row.querySelector('.org-part-line-total');
 
       populateInventorySelect(select);
-      if (values.part) select.value = values.part;
+      if (values.part) {
+        select.value = values.part;
+        syncSearchableSelect(select);
+      }
 
       const syncMarketHint = () => {
         const opt = select.options[select.selectedIndex];
@@ -6555,16 +6902,25 @@
       };
 
       const recalc = () => {
-        const qty = Number(qtyInput.value) || 0;
-        const sellPrice = Number(priceInput.value) || 0;
+        const qtyVal = qtyInput.value;
+        let qty = Number(qtyVal);
+        if (!qtyVal || isNaN(qty) || qty <= 0) {
+          qty = 1;
+        }
+        const priceVal = priceInput.value;
+        let sellPrice = Number(priceVal);
+        if (!priceVal || isNaN(sellPrice) || sellPrice === 0) {
+          const opt = select.options[select.selectedIndex];
+          sellPrice = Number(opt?.getAttribute('data-market-price')) || 0;
+        }
         lineTotal.value = (qty * sellPrice).toFixed(2);
         syncOrgCartSummary();
       };
 
       select.addEventListener('change', () => {
         syncMarketHint();
-        priceInput.value = '0';
-        if (!qtyInput.value) qtyInput.value = 1;
+        priceInput.value = '';
+        if (!qtyInput.value || Number(qtyInput.value) <= 0) qtyInput.value = 1;
         recalc();
       });
       qtyInput.addEventListener('input', recalc);
@@ -6755,22 +7111,42 @@
       $('sub-parts-profit').textContent = `This month: ${formatCurrency(mPartsProfit)}`;
 
       // Monthly Expenses
-      const mExpensesSum = DB.expenses.filter(e => e.date && e.date.startsWith(thisMonthPrefix)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const payrollTotal = calculatePayrollTotal();
+      const hasPayrollSheetTotal = DB.payroll.length > 0;
+      const categories = ['Rent', 'Spare Parts Purchase', 'Tools', 'Salary', 'Water/Electricity', 'Marketing', 'Others'];
+      const normalizeExpenseCategory = category => {
+        if (category === 'Salaries' || category === 'Mechanic Payout') return 'Salary';
+        return category;
+      };
+
+      const getMonthlyExpenseCategoryTotal = category => {
+        if (category === 'Salary' && hasPayrollSheetTotal) return payrollTotal;
+        return DB.expenses
+          .filter(e => e.date && e.date.startsWith(thisMonthPrefix) && normalizeExpenseCategory(e.category) === category)
+          .reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
+      };
+      const mExpensesSum = categories.reduce((sum, category) => sum + getMonthlyExpenseCategoryTotal(category), 0);
       $('kpi-monthly-expenses').textContent = formatCurrency(mExpensesSum);
-      $('sub-monthly-expenses').textContent = `Logistics & utilities`;
+      $('sub-monthly-expenses').textContent = `Logistics, utilities & payroll`;
 
       // Net Income: all-time income after all recorded operating expenses.
-      const allTimeExpenses = DB.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const getExpenseCategoryTotal = category => {
+        if (category === 'Salary' && hasPayrollSheetTotal) return payrollTotal;
+        return DB.expenses
+          .filter(e => normalizeExpenseCategory(e.category) === category)
+          .reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
+      };
+      const allTimeExpenses = categories.reduce((sum, category) => sum + getExpenseCategoryTotal(category), 0);
       const netIncome = allTimeIncome - allTimeExpenses;
       $('kpi-net-income').textContent = formatCurrency(netIncome);
       $('kpi-net-income').style.color = netIncome >= 0 ? 'var(--success)' : 'var(--danger)';
       $('sub-net-income').textContent = `${formatCurrency(allTimeIncome)} - ${formatCurrency(allTimeExpenses)} expenses`;
 
-      // Net Profit: repair services fee + org job fee + spare part sales profit.
-      const netProfit = allRepairFees + allPartsProfit + allTimeOrgServices;
+      // Net Profit: repair services fee + org job fee + spare part sales profit - all-time expenses.
+      const netProfit = (allRepairFees + allPartsProfit + allTimeOrgServices) - allTimeExpenses;
       $('kpi-net-profit').textContent = formatCurrency(netProfit);
       $('kpi-net-profit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-      $('sub-net-profit').textContent = 'Parts profit + service fees + org service fees';
+      $('sub-net-profit').textContent = 'Parts profit + service fees + org service fees - all-time expenses';
 
       // Payroll Cost
       const totalPayrollCost = calculatePayrollTotal();
@@ -6952,7 +7328,7 @@
       DB.spareParts.forEach(p => list.push({ date: p.date, type: 'Parts', ref: p.invoice, desc: getSparePartSaleName(p), amt: getSparePartSaleTotal(p), pay: p.payment, cat: 'income', created: p.created_at }));
       DB.repairs.forEach(r => list.push({ date: r.date, type: 'Repair', ref: r.job, desc: `${r.customer} - ${r.model || 'No model'}`, amt: Number(r.fee), pay: r.payment, cat: 'income', created: r.created_at }));
       DB.orgJobs.forEach(o => list.push({ date: o.date, type: 'Org Job', ref: o.invoice, desc: `${o.org_name} (${o.bikes} bikes)`, amt: getOrgJobServiceFee(o), pay: o.status, cat: 'income', created: o.created_at }));
-      DB.expenses.forEach(e => list.push({ date: e.date, type: 'Expense', ref: 'EXPENSE', desc: `${e.category} - ${e.description}`, amt: Number(e.amount), pay: e.payment, cat: 'expense', created: e.created_at }));
+      DB.expenses.forEach(e => list.push({ date: e.date, type: 'Expense', ref: 'EXPENSE', desc: `${e.category} - ${e.description}`, amt: parseStoredNumber(e.amount) || 0, pay: e.payment, cat: 'expense', created: e.created_at }));
 
       list.sort((a, b) => new Date(b.created) - new Date(a.created));
 
@@ -7732,10 +8108,28 @@
         if (category === 'Salary' && hasPayrollSheetTotal) return payrollTotal;
         return DB.expenses
           .filter(e => normalizeExpenseCategory(e.category) === category)
-          .reduce((sum, e) => sum + Number(e.amount), 0);
+          .reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
       };
 
       const grandTotal = categories.reduce((sum, category) => sum + getExpenseCategoryTotal(category), 0);
+
+      // Monthly Expenses Calculation using same breakdown logic
+      const thisMonthPrefix = getLocalDateString().substring(0, 7);
+      const getMonthlyExpenseCategoryTotal = category => {
+        if (category === 'Salary' && hasPayrollSheetTotal) return payrollTotal;
+        return DB.expenses
+          .filter(e => e.date && e.date.startsWith(thisMonthPrefix) && normalizeExpenseCategory(e.category) === category)
+          .reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
+      };
+      const monthlyExpenses = categories.reduce((sum, category) => sum + getMonthlyExpenseCategoryTotal(category), 0);
+
+      // Update Expenses KPI cards
+      const overallKpi = $('expenses-kpi-overall');
+      if (overallKpi) overallKpi.textContent = formatCurrency(grandTotal);
+      const monthlyKpi = $('expenses-kpi-monthly');
+      if (monthlyKpi) monthlyKpi.textContent = formatCurrency(monthlyExpenses);
+      const monthlySub = $('expenses-sub-monthly');
+      if (monthlySub) monthlySub.textContent = `Expenses in ${thisMonthPrefix}`;
 
       categories.forEach(cat => {
         const catTotal = getExpenseCategoryTotal(cat);
@@ -7774,7 +8168,17 @@
       let sumExpenses = 0;
       if (list.length > 0) {
         list.forEach(e => {
-          sumExpenses += Number(e.amount);
+          sumExpenses += (parseStoredNumber(e.amount) || 0);
+
+          let badgeStyle = '';
+          if (e.payment === 'M-Pesa') {
+            badgeStyle = 'background: #EEF2FF; border: 1px solid #6366F1; color: #4F46E5;';
+          } else if (e.payment === 'Cash') {
+            badgeStyle = 'background: #ECFDF5; border: 1px solid #10B981; color: #059669;';
+          } else {
+            badgeStyle = 'background: #F3F4F6; border: 1px solid #9CA3AF; color: #4B5563;';
+          }
+
           const row = document.createElement('tr');
           row.innerHTML = `
             <td style="font-family: var(--font-mono);">${escapeHtml(e.date)}</td>
@@ -7782,7 +8186,7 @@
             <td>${escapeHtml(e.description)}</td>
             <td>${escapeHtml(e.paid_to || '-')}</td>
             <td style="font-family: var(--font-mono); color: var(--danger); font-weight: 600;">${formatCurrency(e.amount)}</td>
-            <td><span class="status-badge status-unpaid" style="background:#FFF0F0; border:1px solid var(--danger);">${escapeHtml(e.payment)}</span></td>
+            <td><span class="status-badge" style="${badgeStyle}">${escapeHtml(e.payment)}</span></td>
             <td class="no-print">
               <div class="action-btn-group">
                 <button class="btn-icon btn-edit-expense-btn" data-id="${e.id}">✏️</button>
@@ -8121,7 +8525,7 @@
         const orgTotal = calculateOrgServicesFee(DB.orgJobs.filter(o => o.date && o.date.startsWith(monthPrefix)));
 
         const income = partsTotal + repairsTotal + orgTotal;
-        const expenses = DB.expenses.filter(e => e.date && e.date.startsWith(monthPrefix)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        const expenses = DB.expenses.filter(e => e.date && e.date.startsWith(monthPrefix)).reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
         const profit = income - expenses;
 
         // Sum aggregates
@@ -8683,14 +9087,56 @@
 
       const payment = $('sale-payment').value;
       const part = $('sale-part').value;
-      const qty = Number($('sale-qty').value);
+
+      const qtyVal = $('sale-qty').value;
+      let qty = Number(qtyVal);
+      if (!qtyVal || isNaN(qty) || qty <= 0) {
+        qty = 1;
+      }
+
       const inventoryItem = findInventoryItemByName(part);
       const buyingPrice = Number($('sale-buying-price').value) || (inventoryItem ? getInventoryBuyingPrice(inventoryItem) : 0);
-      const marketPrice = Number($('sale-market-price').value) || (inventoryItem ? getInventoryMarketPrice(inventoryItem) : Number($('sale-price').value)) || 0;
-      const sellPrice = Number($('sale-price').value);
+      const marketPrice = Number($('sale-market-price').value) || (inventoryItem ? getInventoryMarketPrice(inventoryItem) : 0);
+
+      const sellPriceVal = $('sale-price').value;
+      let sellPrice = Number(sellPriceVal);
+      if (!sellPriceVal || isNaN(sellPrice) || sellPrice === 0) {
+        sellPrice = marketPrice;
+      }
+
+      if (sellPrice <= 0) {
+        const priceField = $('sale-price');
+        priceField.classList.add('invalid');
+        const errSpan = priceField.parentNode.querySelector('.form-error');
+        if (errSpan) {
+          errSpan.textContent = 'Please enter a selling price';
+          errSpan.setAttribute('role', 'alert');
+        }
+        priceField.focus();
+        Toast.error('Please enter a selling price');
+        return;
+      }
+
       const total = qty * sellPrice;
       const profit = (sellPrice - buyingPrice) * qty;
       const customer = $('sale-customer').value.trim();
+
+      // Custom deposit check when Credit is selected
+      if (payment === 'Credit') {
+        const deposit = Number($('sale-credit-deposit').value) || 0;
+        if (deposit > total) {
+          const depositField = $('sale-credit-deposit');
+          depositField.classList.add('invalid');
+          const errSpan = depositField.parentNode.querySelector('.form-error');
+          if (errSpan) {
+            errSpan.textContent = 'Deposit cannot exceed the total bill';
+            errSpan.setAttribute('role', 'alert');
+          }
+          depositField.focus();
+          Toast.error('Please fix the form errors above');
+          return;
+        }
+      }
 
       // Save elements
       const data = {
@@ -8741,14 +9187,18 @@
 
         if (payment === 'Credit') {
           // Sequenced Debt addition
+          const deposit = Number($('sale-credit-deposit').value) || 0;
+          const notes = $('sale-credit-notes').value.trim();
+          const itemDescription = notes ? `${part} (Qty: ${qty}) [Notes: ${notes}]` : `${part} (Qty: ${qty})`;
+
           const debtData = {
             date: data.date,
             ref: data.invoice,
             name: customer || 'Spare Parts Customer',
             phone: data.phone,
-            item: `${part} (Qty: ${qty})`,
+            item: itemDescription,
             amount: total,
-            paid: 0,
+            paid: deposit,
             due: $('sale-due-date').value
           };
 
