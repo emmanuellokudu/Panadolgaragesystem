@@ -6140,7 +6140,7 @@
 
     // CLIENT WRAPPER FOR GOOGLE APPS SCRIPT
     // ── APPS SCRIPT API URL ──────────────────────────────
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwkpFRV6LpH1sXnhIGgXlQeb_mYYyDdjQu7TjycDX4dMTwsnD5xEa8s_QQVNXLhO2bf2Q/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbx2EtMqtMTKvPe720St2tjNE9jYQpzcPEHJ2Ap5uTCJAA-p6Bh3bNKQ_sGG89fou0AD/exec";
 
     // ── FETCH-BASED SCRIPT RUNNER (replaces google.script.run) ──
     async function runScript(fnName, args, onSuccess, onError) {
@@ -6641,17 +6641,17 @@
 
     // CHECK SYSTEM USER ACCOUNTS
     function checkSystemAccountState() {
+      // Check session storage first for instant loading
+      const cached = sessionStorage.getItem('PANADOL_USER');
+      if (cached) {
+        SESSION = JSON.parse(cached);
+        bootstrapApplication();
+        return;
+      }
+
       runScript('getUserCount', [], (result) => {
         $('full-loading-overlay').style.opacity = '0';
         setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
-
-        // Check session storage
-        const cached = sessionStorage.getItem('PANADOL_USER');
-        if (cached) {
-          SESSION = JSON.parse(cached);
-          bootstrapApplication();
-          return;
-        }
 
         $('auth-container').style.display = 'flex';
         if (result.count === 0) {
@@ -6696,11 +6696,61 @@
       fetchDatabase();
     }
 
+    // CACHE HELPER FUNCTIONS
+    function saveDbToCache() {
+      try {
+        localStorage.setItem('panadol_garage_db', JSON.stringify({
+          spareParts: DB.spareParts,
+          repairs: DB.repairs,
+          orgJobs: DB.orgJobs,
+          debts: DB.debts,
+          expenses: DB.expenses,
+          inventory: DB.inventory,
+          payroll: DB.payroll,
+          customers: DB.customers,
+          auditLog: DB.auditLog
+        }));
+      } catch (err) {
+        console.error('Failed to cache database:', err);
+      }
+    }
+
     // BULK DATABASE READS
     function fetchDatabase() {
-      $('loading-spinner-text').textContent = '🔧 Loading Panadol Garage operations data...';
-      $('full-loading-overlay').style.display = 'flex';
-      $('full-loading-overlay').style.opacity = '1';
+      let hasCache = false;
+      try {
+        const cached = localStorage.getItem('panadol_garage_db');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          DB.spareParts = parsed.spareParts || [];
+          DB.repairs = parsed.repairs || [];
+          DB.orgJobs = parsed.orgJobs || [];
+          DB.debts = parsed.debts || [];
+          DB.expenses = parsed.expenses || [];
+          DB.inventory = parsed.inventory || [];
+          DB.payroll = parsed.payroll || [];
+          DB.customers = parsed.customers || [];
+          DB.auditLog = parsed.auditLog || [];
+
+          // Immediately hide overlay if we have cache
+          $('full-loading-overlay').style.opacity = '0';
+          setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
+
+          // Immediately render current dashboard to make it fast
+          switchPage('page-dashboard');
+          rebuildPartsSelectDropdown();
+          rebuildMechanicSelectDropdown();
+          hasCache = true;
+        }
+      } catch (err) {
+        console.error('Failed to parse cached database:', err);
+      }
+
+      if (!hasCache) {
+        $('loading-spinner-text').textContent = '🔧 Loading Panadol Garage operations data...';
+        $('full-loading-overlay').style.display = 'flex';
+        $('full-loading-overlay').style.opacity = '1';
+      }
 
       runScript('getAllData', [], (result) => {
         // Pop DB
@@ -6714,19 +6764,26 @@
         DB.customers = result.customers || [];
         DB.auditLog = result.audit_log || [];
 
-        // Hide overlay
-        $('full-loading-overlay').style.opacity = '0';
-        setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
+        // Update local cache
+        saveDbToCache();
 
-        // Render current dashboard
-        switchPage('page-dashboard');
+        if (!hasCache) {
+          // Hide overlay
+          $('full-loading-overlay').style.opacity = '0';
+          setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
+          switchPage('page-dashboard');
+        } else {
+          // Silent re-render of active page with fresh data
+          renderActivePageData();
+        }
 
-        // Build Select drop list items for parts
         rebuildPartsSelectDropdown();
         rebuildMechanicSelectDropdown();
       }, () => {
-        $('full-loading-overlay').style.display = 'none';
-        Toast.error('Failed to sync complete Google Sheets records');
+        if (!hasCache) {
+          $('full-loading-overlay').style.display = 'none';
+          Toast.error('Failed to sync complete Google Sheets records');
+        }
       });
     }
 
@@ -6750,6 +6807,7 @@
       runScript(fnName, [], (res) => {
         if (loadingId) $(loadingId).style.display = 'none';
         DB[dbKey] = res.data || res;
+        saveDbToCache();
         renderActivePageData();
         if (dbKey === 'inventory') rebuildPartsSelectDropdown();
         if (dbKey === 'payroll') rebuildMechanicSelectDropdown();
@@ -6765,6 +6823,7 @@
       runScript('getPayroll', [], (res) => {
         APP.expensesPayrollRefreshing = false;
         DB.payroll = res.data || res || [];
+        saveDbToCache();
         if (APP.currentPage === 'page-expenses') renderExpensesModule();
       }, () => {
         APP.expensesPayrollRefreshing = false;
@@ -8309,6 +8368,7 @@
             }
 
             // Re-render table locally without resetting values
+            saveDbToCache();
             renderPayrollModule();
           }
         });
@@ -9064,6 +9124,7 @@
         // Fetch operating expenses and force rendering of the expenses table immediately
         runScript('getExpenses', [], (res) => {
           DB.expenses = res.data || res;
+          saveDbToCache();
           renderExpensesModule();
         });
       }, (err) => {
@@ -9955,6 +10016,7 @@
         // Auto Login
         SESSION = { id: result.id, name, username, role: 'Owner' };
         sessionStorage.setItem('PANADOL_USER', JSON.stringify(SESSION));
+        localStorage.removeItem('panadol_garage_db');
         bootstrapApplication();
       }, (err) => {
         $('full-loading-overlay').style.display = 'none';
@@ -9985,6 +10047,7 @@
           SESSION.permissions = { read: true, create: true, edit: true, delete: true, payroll: true, payEmployee: true, reports: true, export: true, manageUsers: true };
         }
         sessionStorage.setItem('PANADOL_USER', JSON.stringify(SESSION));
+        localStorage.removeItem('panadol_garage_db');
         bootstrapApplication();
       }, (err) => {
         $('full-loading-overlay').style.display = 'none';
@@ -10036,6 +10099,7 @@
     $('btn-close-logout-modal').onclick = () => Modal.close();
     $('btn-logout-confirm').onclick = () => {
       sessionStorage.removeItem('PANADOL_USER');
+      localStorage.removeItem('panadol_garage_db');
       Modal.close();
       SESSION = null;
 
