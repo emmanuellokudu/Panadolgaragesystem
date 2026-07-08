@@ -4160,13 +4160,13 @@
                     <input type="number" id="payroll-base" class="form-control" min="0" value="0" required>
                     <span class="form-error"></span>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" style="display: none;">
                     <label for="payroll-comm-pct">Commission Percentage (%) <span class="req">*</span></label>
                     <input type="number" id="payroll-comm-pct" class="form-control" min="0" max="100" value="0"
                       required>
                     <span class="form-error"></span>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" style="display: none;">
                     <label for="payroll-revenue">Initial Revenue Generated (KES)</label>
                     <input type="number" id="payroll-revenue" class="form-control" min="0" value="0">
                     <span class="form-error"></span>
@@ -6140,7 +6140,7 @@
 
     // CLIENT WRAPPER FOR GOOGLE APPS SCRIPT
     // ── APPS SCRIPT API URL ──────────────────────────────
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwkpFRV6LpH1sXnhIGgXlQeb_mYYyDdjQu7TjycDX4dMTwsnD5xEa8s_QQVNXLhO2bf2Q/exec';
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwkpFRV6LpH1sXnhIGgXlQeb_mYYyDdjQu7TjycDX4dMTwsnD5xEa8s_QQVNXLhO2bf2Q/exec";
 
     // ── FETCH-BASED SCRIPT RUNNER (replaces google.script.run) ──
     async function runScript(fnName, args, onSuccess, onError) {
@@ -7142,11 +7142,11 @@
       $('kpi-net-income').style.color = netIncome >= 0 ? 'var(--success)' : 'var(--danger)';
       $('sub-net-income').textContent = `${formatCurrency(allTimeIncome)} - ${formatCurrency(allTimeExpenses)} expenses`;
 
-      // Net Profit: repair services fee + org job fee + spare part sales profit - all-time expenses.
-      const netProfit = (allRepairFees + allPartsProfit + allTimeOrgServices) - allTimeExpenses;
+      // Net Profit: Parts profit + Service fees (from both org and normal service fee)
+      const netProfit = allPartsProfit + allRepairFees + allTimeOrgServices;
       $('kpi-net-profit').textContent = formatCurrency(netProfit);
       $('kpi-net-profit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-      $('sub-net-profit').textContent = 'Parts profit + service fees + org service fees - all-time expenses';
+      $('sub-net-profit').textContent = 'Parts profit + service fees';
 
       // Payroll Cost
       const totalPayrollCost = calculatePayrollTotal();
@@ -8259,8 +8259,8 @@
               </select>
             </td>
             <td><input type="number" class="payroll-input payroll-field" data-id="${emp.id}" data-field="base" value="${emp.base}"></td>
-            <td><input type="number" class="payroll-input payroll-field" data-id="${emp.id}" data-field="comm_pct" value="${emp.comm_pct}" ${emp.type === 'Salary' ? 'disabled' : ''}></td>
-            <td><input type="number" class="payroll-input payroll-field" data-id="${emp.id}" data-field="revenue" value="${emp.revenue}" ${emp.type === 'Salary' ? 'disabled' : ''}></td>
+            <td><input type="number" class="payroll-input payroll-field" data-id="${emp.id}" data-field="comm_pct" value="${emp.comm_pct}" style="${emp.type === 'Salary' ? 'display: none;' : ''}"></td>
+            <td><input type="number" class="payroll-input payroll-field" data-id="${emp.id}" data-field="revenue" value="${emp.revenue}" style="${emp.type === 'Salary' ? 'display: none;' : ''}"></td>
             <td style="font-family: var(--font-mono); font-weight:500;">${formatCurrency(commEarned)}</td>
             <td style="font-family: var(--font-mono); font-weight:700;">${formatCurrency(totalPay)}</td>
             <td class="no-print">
@@ -8526,7 +8526,8 @@
 
         const income = partsTotal + repairsTotal + orgTotal;
         const expenses = DB.expenses.filter(e => e.date && e.date.startsWith(monthPrefix)).reduce((sum, e) => sum + (parseStoredNumber(e.amount) || 0), 0);
-        const profit = income - expenses;
+        const partsProfit = DB.spareParts.filter(p => p.date && p.date.startsWith(monthPrefix)).reduce((sum, p) => sum + calculateSparePartProfit(p), 0);
+        const profit = partsProfit + repairsTotal + orgTotal;
 
         // Sum aggregates
         annualParts += partsTotal;
