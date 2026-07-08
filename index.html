@@ -2889,6 +2889,12 @@
           </div>
         </div>
         <div class="topbar-right">
+          <!-- Cloud Sync Status -->
+          <div id="sync-status-indicator" class="no-print" style="margin-right: 15px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--muted);">
+            <span id="sync-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success); display: inline-block; transition: background-color 0.3s ease;"></span>
+            <span id="sync-status-text">Synced</span>
+          </div>
+
           <button class="btn-ghost no-print" id="btn-print-screen">🖨️ <span>Print View</span></button>
           <button class="btn-primary no-print" id="btn-quick-record-add">➕ Add Record</button>
 
@@ -6142,8 +6148,26 @@
     // ── APPS SCRIPT API URL ──────────────────────────────
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwkpFRV6LpH1sXnhIGgXlQeb_mYYyDdjQu7TjycDX4dMTwsnD5xEa8s_QQVNXLhO2bf2Q/exec";
 
+    // ── SAFE JSON PARSER ──
+    async function safeParseJson(res) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        console.error('Invalid JSON response from server:', text);
+        if (text.trim().startsWith('<')) {
+          throw new Error('Google Apps Script returned an HTML page instead of JSON data. This usually happens when script permissions are incorrect, the Google Web App url is invalid/unauthorized, or a server error occurred.');
+        }
+        throw new Error('Invalid JSON format: ' + err.message);
+      }
+    }
+
     // ── FETCH-BASED SCRIPT RUNNER (replaces google.script.run) ──
     async function runScript(fnName, args, onSuccess, onError) {
+      const quietActions = ['getUserCount', 'login', 'signup', 'changePassword'];
+      if (!quietActions.includes(fnName)) {
+        setSyncStatus('syncing');
+      }
       try {
         const getActions = [
           'getUserCount', 'getAllData', 'getSparePartsSales', 'getRepairs',
@@ -6159,7 +6183,7 @@
             method: 'GET',
             redirect: 'follow'   // ← critical for Apps Script redirects
           });
-          result = await res.json();
+          result = await safeParseJson(res);
 
         } else {
           // ── POST requests ─────────────────────────────
@@ -6170,17 +6194,20 @@
             body: JSON.stringify(body)
             // ⚠️ Do NOT set Content-Type header — causes CORS preflight to fail
           });
-          result = await res.json();
+          result = await safeParseJson(res);
         }
 
         if (result && result.success === false) {
+          if (!quietActions.includes(fnName)) setSyncStatus('error');
           Toast.error(result.error || 'Server returned an error');
           if (onError) onError(result);
         } else {
+          if (!quietActions.includes(fnName)) setSyncStatus('synced');
           if (onSuccess) onSuccess(result);
         }
 
       } catch (err) {
+        if (!quietActions.includes(fnName)) setSyncStatus('error');
         console.error('API Error:', fnName, err);
         Toast.error('Connection failed — ' + err.message);
         if (onError) onError(err);
@@ -6696,6 +6723,24 @@
       fetchDatabase();
     }
 
+    // CLOUD SYNC INDICATOR CONTROLLER
+    function setSyncStatus(status) {
+      const dot = document.getElementById('sync-status-dot');
+      const text = document.getElementById('sync-status-text');
+      if (!dot || !text) return;
+
+      if (status === 'syncing') {
+        dot.style.backgroundColor = '#f1c40f'; // Orange/yellow
+        text.textContent = 'Syncing...';
+      } else if (status === 'synced') {
+        dot.style.backgroundColor = 'var(--success)'; // Green
+        text.textContent = 'Synced';
+      } else if (status === 'error') {
+        dot.style.backgroundColor = 'var(--danger)'; // Red
+        text.textContent = 'Sync Error';
+      }
+    }
+
     // CACHE HELPER FUNCTIONS
     function saveDbToCache() {
       try {
@@ -6731,26 +6776,20 @@
           DB.payroll = parsed.payroll || [];
           DB.customers = parsed.customers || [];
           DB.auditLog = parsed.auditLog || [];
-
-          // Immediately hide overlay if we have cache
-          $('full-loading-overlay').style.opacity = '0';
-          setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
-
-          // Immediately render current dashboard to make it fast
-          switchPage('page-dashboard');
-          rebuildPartsSelectDropdown();
-          rebuildMechanicSelectDropdown();
           hasCache = true;
         }
       } catch (err) {
         console.error('Failed to parse cached database:', err);
       }
 
-      if (!hasCache) {
-        $('loading-spinner-text').textContent = '🔧 Loading Panadol Garage operations data...';
-        $('full-loading-overlay').style.display = 'flex';
-        $('full-loading-overlay').style.opacity = '1';
-      }
+      // Hide the initial loading overlay immediately so page load is instant
+      $('full-loading-overlay').style.opacity = '0';
+      setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
+
+      // Immediately display dashboard & populate dropdowns (either from cache or empty state)
+      switchPage('page-dashboard');
+      rebuildPartsSelectDropdown();
+      rebuildMechanicSelectDropdown();
 
       runScript('getAllData', [], (result) => {
         // Pop DB
@@ -6767,21 +6806,13 @@
         // Update local cache
         saveDbToCache();
 
-        if (!hasCache) {
-          // Hide overlay
-          $('full-loading-overlay').style.opacity = '0';
-          setTimeout(() => $('full-loading-overlay').style.display = 'none', 300);
-          switchPage('page-dashboard');
-        } else {
-          // Silent re-render of active page with fresh data
-          renderActivePageData();
-        }
-
+        // Silent re-render of active page with fresh data
+        renderActivePageData();
         rebuildPartsSelectDropdown();
         rebuildMechanicSelectDropdown();
       }, () => {
+        // If background fetch failed and we have no cache, warn the user
         if (!hasCache) {
-          $('full-loading-overlay').style.display = 'none';
           Toast.error('Failed to sync complete Google Sheets records');
         }
       });
@@ -9078,7 +9109,6 @@
 
     $('btn-delete-confirm').onclick = () => {
       Modal.close();
-      if (deleteConfig.loadingIndicatorId) $(deleteConfig.loadingIndicatorId).style.display = 'flex';
 
       const mapper = {
         spareParts: ['deleteSparePart', 'spareParts'],
@@ -9091,12 +9121,27 @@
         customers: ['deleteCustomer', 'customers']
       };
 
-      const [fnName, collection] = mapper[deleteConfig.collectionKey];
+      const [fnName, dbKey] = mapper[deleteConfig.collectionKey];
+
+      // Optimistic Delete: Remove from local DB arrays immediately
+      if (Array.isArray(DB[dbKey])) {
+        DB[dbKey] = DB[dbKey].filter(item => String(item.id) !== String(deleteConfig.recordId));
+        saveDbToCache();
+        renderActivePageData();
+        if (dbKey === 'inventory') rebuildPartsSelectDropdown();
+        if (dbKey === 'payroll') rebuildMechanicSelectDropdown();
+      }
+
+      Toast.success('Record deletion queued successfully');
+
+      // Send delete request in the background
       runScript(fnName, deleteConfig.recordId, () => {
-        Toast.success('Record deleted from Google Sheets successfully');
-        syncCollection(collection, deleteConfig.loadingIndicatorId);
-      }, () => {
-        if (deleteConfig.loadingIndicatorId) $(deleteConfig.loadingIndicatorId).style.display = 'none';
+        // Silently sync collection in background to confirm server state
+        syncCollection(dbKey, null);
+      }, (err) => {
+        console.warn('Background delete failed (item may already be deleted on server):', err);
+        // Silently sync collection in background to restore if it was a real network error
+        syncCollection(dbKey, null);
       });
     };
 
